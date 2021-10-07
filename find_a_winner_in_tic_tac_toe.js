@@ -8,8 +8,10 @@
  var tictactoe = function(moves) {
   const INITIAL = 9999;
   const PLAYER_1_MOVE = 0, PLAYER_2_MOVE = 1;
-
   const BOARD_SIZE = 3;
+
+  const P1_WIN_CHECKSUM = PLAYER_1_MOVE * BOARD_SIZE, 
+    P2_WIN_CHECKSUM = PLAYER_2_MOVE * BOARD_SIZE; 
 
   const board = [
     [INITIAL, INITIAL, INITIAL],
@@ -31,7 +33,7 @@
   // vertical
   for(let i = 0 ; i < BOARD_SIZE; i++) {
     sum = board[i][0] + board[i][1] + board[i][2];
-    winner = getWinner(sum, PLAYER_1_MOVE, PLAYER_2_MOVE);
+    winner = getWinner(sum, P1_WIN_CHECKSUM, P2_WIN_CHECKSUM);
     if (winner !== '') 
       return printResult(BOARD_SIZE, moves, winner);
   };
@@ -39,35 +41,35 @@
   // hortizontal
   for( let i = 0 ; i < BOARD_SIZE; i++ ) {
     sum = board[0][i] + board[1][i] + board[2][i];
-    winner = getWinner(sum, PLAYER_1_MOVE, PLAYER_2_MOVE);
+    winner = getWinner(sum, P1_WIN_CHECKSUM, P2_WIN_CHECKSUM);
     if (winner !== '') 
       return printResult(BOARD_SIZE, moves, winner);
   };
 
   // left to right diagonally
   sum = board[0][0] + board[1][1] + board[2][2];
-  winner = getWinner(sum, PLAYER_1_MOVE, PLAYER_2_MOVE);
+  winner = getWinner(sum, P1_WIN_CHECKSUM, P2_WIN_CHECKSUM);
 
   if (winner !== '')
     return printResult(BOARD_SIZE, moves, winner);
 
   // right to left diagonally
   sum = board[0][2] + board[1][1] + board[2][0];
-  winner = getWinner(sum, PLAYER_1_MOVE, PLAYER_2_MOVE);
+  winner = getWinner(sum, P1_WIN_CHECKSUM, P2_WIN_CHECKSUM);
 
   return printResult(BOARD_SIZE, moves, winner);
 };
 
-function printResult(BOARD_SIZE, moves, winner) {
+function printResult(boardSize, moves, winner) {
 
   let output = '';
 
-  if( moves.length < BOARD_SIZE * BOARD_SIZE && winner === '') {
+  if( moves.length < boardSize * boardSize && winner === '') {
     output = "Pending";
     return output;
   } 
   
-  if (BOARD_SIZE * BOARD_SIZE === moves.length) {
+  if (boardSize * boardSize === moves.length) {
     if( winner === '' ) {
       output = 'Draw'
       return output;
@@ -77,10 +79,10 @@ function printResult(BOARD_SIZE, moves, winner) {
   return winner;
 }
 
-function getWinner(sum, PLAYER_1_MOVE, PLAYER_2_MOVE) {
-  if(sum === PLAYER_1_MOVE * 3) {
+function getWinner(sum, p1WinCheckSum, p2WinCheckSum) {
+  if(sum === p1WinCheckSum) {
     return 'A'
-  } else if ( sum === PLAYER_2_MOVE * 3 ) {
+  } else if ( sum === p2WinCheckSum ) {
     return 'B'
   }
   return '';
