@@ -3,26 +3,27 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Queue;  
-import java.util.ArrayDeque;  
+import java.util.Queue;
+import java.util.Stack;
+import java.util.ArrayDeque;
 import java.util.Objects;
-import java.util.Optional;  
+import java.util.Optional;
 
 class Vertex {
-  String label;
-  Vertex(String label) {
-      this.label = label;
-  }
+    String label;
+    Vertex(String label) {
+        this.label = label;
+    }
 
-  public String getLabel() {
-    return this.label;
-  }
+    public String getLabel() {
+        return this.label;
+    }
 
-  public void setLabel(String label) {
-    this.label = label;
-  }
+    public void setLabel(String label) {
+        this.label = label;
+    }
 
-  @Override
+    @Override
     public boolean equals(Object o) {
         if (o == this)
             return true;
@@ -31,168 +32,199 @@ class Vertex {
         }
         Vertex vertex = (Vertex) o;
         return this.label.equals(vertex.getLabel());
-  }
+    }
 
-  @Override
-  public int hashCode() {
-    return this.label.hashCode();
-  }
+    @Override
+    public int hashCode() {
+        return this.label.hashCode();
+    }
 
 }
 
 abstract class Graph {
-  private Map<Vertex, List<Vertex>> adjVertices;
-  
-  public Graph() { 
-    this.adjVertices = new HashMap<Vertex, List<Vertex>>();
-  }
+    private Map<Vertex, List<Vertex>> adjVertices;
 
-  public Map<Vertex,List<Vertex>> getAdjVertices() {
-    return this.adjVertices;
-  }
-
-  public void setAdjVertices(Map<Vertex,List<Vertex>> adjVertices) {
-    this.adjVertices = adjVertices;
-  }
-
-  public Vertex addVertex(String label) {
-    Vertex v = new Vertex(label);
-    this.adjVertices.putIfAbsent(v, new ArrayList<>());
-    return v;
-  }
-
-  public void removeVertex(String label) {
-    Vertex v = new Vertex(label);
-    this.adjVertices.values().stream().forEach(e -> e.remove(v));
-    this.adjVertices.remove(new Vertex(label));
-  }
-
-  public void addUniDirectionalEdge(String source, String destination) throws Exception {
-    Optional<Vertex> sourceV = this.findKey(source);
-    Optional<Vertex> destinationV = this.findKey(destination);
-
-    if( !sourceV.isPresent() || !destinationV.isPresent() ) {
-      throw new Exception("Source or Destination vertex does not exists");
+    public Graph() {
+        this.adjVertices = new HashMap<Vertex, List<Vertex>>();
     }
 
-    if(adjVertices.get(sourceV.get()).contains(destinationV.get())) {
-      throw new Exception("Destination vertex already exists");
+    public Map<Vertex,List<Vertex>> getAdjVertices() {
+        return this.adjVertices;
     }
 
-    this.adjVertices.get(sourceV.get()).add(destinationV.get());
-  }
-
-  public void addBiDirectionalEdge(String source, String destination) throws Exception {
-    this.addUniDirectionalEdge(source,destination);
-
-    Optional<Vertex> sourceV = this.findKey(source);
-    Optional<Vertex> destinationV = this.findKey(destination);
-    
-    if( !adjVertices.get(destinationV.get()).contains(sourceV.get()) ) {
-      this.adjVertices.get(destinationV.get()).add(sourceV.get());
-    }
-    
-  }
-
-  public void removeEdge(String source, String destination) throws Exception { 
-    Optional<Vertex> sourceV = this.findKey(source);
-    Optional<Vertex> destinationV = this.findKey(destination);
-
-    if( !sourceV.isPresent() || !destinationV.isPresent() ) {
-      throw new Exception("Source or Destination vertex does not exists");
+    public void setAdjVertices(Map<Vertex,List<Vertex>> adjVertices) {
+        this.adjVertices = adjVertices;
     }
 
-    if( !adjVertices.get(sourceV.get()).contains(destinationV.get()) ) {
-      throw new Exception("Destination vertex does not exists");
+    public Vertex addVertex(String label) {
+        Vertex v = new Vertex(label);
+        this.adjVertices.putIfAbsent(v, new ArrayList<>());
+        return v;
     }
 
-    this.adjVertices.get(sourceV.get()).remove(destinationV.get());
-
-  }
-
-  private Optional<Vertex> findKey(String label){
-    return this.adjVertices
-        .entrySet()
-        .stream()
-        .filter(e -> Objects.equals(e.getKey().getLabel(), label))
-        .map(Map.Entry::getKey)
-        .findAny();
-  }
-
-  public void print() {
-    Iterator<Vertex> keyIt = this.adjVertices.keySet().iterator();
- 
-    System.out.println("******* Graph Start *******");
-
-    while( keyIt.hasNext() ){
-      Vertex v = keyIt.next();
-      System.out.printf( "-------- Vertex: %s --------\n", v.getLabel());
-      this.adjVertices.get(v).forEach( adjVertex -> {
-        System.out.printf( "Edge: %s -----> %s\n", v.getLabel(), adjVertex.getLabel() );
-      });
+    public void removeVertex(String label) {
+        Vertex v = new Vertex(label);
+        this.adjVertices.values().stream().forEach(e -> e.remove(v));
+        this.adjVertices.remove(new Vertex(label));
     }
 
-    System.out.println("******* Graph End *******");
+    public void addUniDirectionalEdge(String source, String destination) throws Exception {
+        Optional<Vertex> sourceV = this.findKey(source);
+        Optional<Vertex> destinationV = this.findKey(destination);
 
-  }
+        if( !sourceV.isPresent() || !destinationV.isPresent() ) {
+            throw new Exception("Source or Destination vertex does not exists");
+        }
 
-  public abstract void bfs(String label);
+        if(adjVertices.get(sourceV.get()).contains(destinationV.get())) {
+            throw new Exception("Destination vertex already exists");
+        }
+
+        this.adjVertices.get(sourceV.get()).add(destinationV.get());
+    }
+
+    public void addBiDirectionalEdge(String source, String destination) throws Exception {
+        this.addUniDirectionalEdge(source,destination);
+
+        Optional<Vertex> sourceV = this.findKey(source);
+        Optional<Vertex> destinationV = this.findKey(destination);
+
+        if( !adjVertices.get(destinationV.get()).contains(sourceV.get()) ) {
+            this.adjVertices.get(destinationV.get()).add(sourceV.get());
+        }
+
+    }
+
+    public void removeEdge(String source, String destination) throws Exception {
+        Optional<Vertex> sourceV = this.findKey(source);
+        Optional<Vertex> destinationV = this.findKey(destination);
+
+        if( !sourceV.isPresent() || !destinationV.isPresent() ) {
+            throw new Exception("Source or Destination vertex does not exists");
+        }
+
+        if( !adjVertices.get(sourceV.get()).contains(destinationV.get()) ) {
+            throw new Exception("Destination vertex does not exists");
+        }
+
+        this.adjVertices.get(sourceV.get()).remove(destinationV.get());
+
+    }
+
+    private Optional<Vertex> findKey(String label){
+        return this.adjVertices
+                .entrySet()
+                .stream()
+                .filter(e -> Objects.equals(e.getKey().getLabel(), label))
+                .map(Map.Entry::getKey)
+                .findAny();
+    }
+
+    public void print() {
+        Iterator<Vertex> keyIt = this.adjVertices.keySet().iterator();
+
+        System.out.println("******* Graph Start *******");
+
+        while( keyIt.hasNext() ){
+            Vertex v = keyIt.next();
+            System.out.printf( "-------- Vertex: %s --------\n", v.getLabel());
+            this.adjVertices.get(v).forEach( adjVertex -> {
+                System.out.printf( "Edge: %s -----> %s\n", v.getLabel(), adjVertex.getLabel() );
+            });
+        }
+
+        System.out.println("******* Graph End *******");
+
+    }
+
+    public abstract void bfs(String label);
+    public abstract void dfs(String label);
 }
 
 class GraphSearch extends Graph {
-  
-  public GraphSearch() {
-    super();
-  }
 
-  public void bfs(String label) {
-    Queue<Vertex> traverseQ = new ArrayDeque<Vertex>();
-    Map<Vertex, Boolean> visitedMap = new HashMap<Vertex, Boolean>();
+    public GraphSearch() {
+        super();
+    }
 
-    Vertex startVertex = new Vertex(label);    
-    traverseQ.add(startVertex);
-    visitedMap.put(startVertex, true);
+    public void bfs(String label) {
+        Queue<Vertex> traverseQ = new ArrayDeque<Vertex>();
+        Map<Vertex, Boolean> visitedMap = new HashMap<Vertex, Boolean>();
 
-    while(!traverseQ.isEmpty()) {
-      
-      Vertex currentV = traverseQ.poll();
+        System.out.println("******* BFS Search Start *******");
 
-      List<Vertex> neighborsV = this.getAdjVertices().get(currentV);
+        Vertex startVertex = new Vertex(label);
+        traverseQ.add(startVertex);
+        visitedMap.put(startVertex, true);
+        System.out.println(startVertex.getLabel());
 
-      for(Vertex n : neighborsV) {
-        if( visitedMap.get(n) == null ) {
-          visitedMap.put(n, true);
-          traverseQ.add(n);
+        while(!traverseQ.isEmpty()) {
+
+            Vertex currentV = traverseQ.poll();
+
+            List<Vertex> neighborsV = this.getAdjVertices().get(currentV);
+
+            for(Vertex n : neighborsV) {
+                if( visitedMap.get(n) == null ) {
+                    visitedMap.put(n, true);
+                    System.out.println(n.getLabel());
+                    traverseQ.add(n);
+                }
+            }
         }
-      }
+        System.out.println("*******  BFS Search End  *******");
     }
 
-    System.out.println("******* BFS Search Start *******");
-    for(Vertex visitedV : visitedMap.keySet()) {
-      System.out.println(visitedV.getLabel());
+    public void dfs(String label) {
+        Stack<Vertex> traverseQ = new Stack<Vertex>();
+        Map<Vertex, Boolean> visitedMap = new HashMap<Vertex, Boolean>();
+
+        Vertex startVertex = new Vertex(label);
+
+        traverseQ.add(startVertex);
+
+        System.out.println("*******  DFS Search Start *******");
+        while( !traverseQ.isEmpty() ) {
+            Vertex currentV = traverseQ.pop();
+            List<Vertex> neighborsV = this.getAdjVertices().get(currentV);
+
+            if( visitedMap.get(currentV) == null ) {
+                visitedMap.put(currentV, true);
+                System.out.println(currentV.getLabel());
+            }
+
+            for(Vertex neighbor : neighborsV) {
+                if( visitedMap.get(neighbor) == null ) {
+                    traverseQ.add(neighbor);
+                }
+            }
+        }
+        System.out.println("*******   DFS Search End  *******");
     }
-    System.out.println("*******  BFS Search End  *******");
-  }
 }
 
 public class GraphExample {
-  public static void main(String[] args) throws Exception {
-    Graph graph = new GraphSearch();
-    
-    graph.addVertex("A");
-    graph.addVertex("B");
-    graph.addVertex("C");
-    graph.addVertex("D");
-    graph.addVertex("E");
+    public static void main(String[] args) throws Exception {
+        Graph graph = new GraphSearch();
 
-    graph.addBiDirectionalEdge("A", "B");
-    graph.addBiDirectionalEdge("A", "C");
-    graph.addBiDirectionalEdge("A", "D");
-    graph.addBiDirectionalEdge("B", "C");
-    graph.addBiDirectionalEdge("C", "E");
+        graph.addVertex("A");
+        graph.addVertex("B");
+        graph.addVertex("C");
+        graph.addVertex("D");
+        graph.addVertex("E");
+        graph.addVertex("F");
+        graph.addVertex("G");
 
-    graph.print();
+        graph.addBiDirectionalEdge("A", "B");
+        graph.addBiDirectionalEdge("A", "C");
+        graph.addBiDirectionalEdge("A", "D");
+        graph.addBiDirectionalEdge("B", "C");
+        graph.addBiDirectionalEdge("C", "E");
+        graph.addBiDirectionalEdge("E", "G");
+        graph.addBiDirectionalEdge("B", "F");
 
-    graph.bfs("A");
-  }
+        graph.print();
+
+        graph.dfs("A");
+    }
 }
