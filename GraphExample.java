@@ -1,13 +1,17 @@
 import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Stack;
 import java.util.ArrayDeque;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.PriorityQueue;
 
 class Vertex {
     String label;
@@ -41,34 +45,75 @@ class Vertex {
 
 }
 
-abstract class Graph {
-    private Map<Vertex, List<Vertex>> adjVertices;
+class Edge {
+    private Vertex vertex;
+    private int weight;
 
-    public Graph() {
-        this.adjVertices = new HashMap<Vertex, List<Vertex>>();
+    public Edge(Vertex vertex, int weight) {
+        this.vertex = vertex;
+        this.weight = weight;
     }
 
-    public Map<Vertex,List<Vertex>> getAdjVertices() {
+    public Edge(Vertex vertex) {
+        this.vertex = vertex;
+        this.weight = 0;
+    }
+
+
+    public Vertex getVertex() {
+        return this.vertex;
+    }
+
+    public void setVertex(Vertex vertex) {
+        this.vertex = vertex;
+    }
+
+    public int getWeight() {
+        return this.weight;
+    }
+
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
+}
+
+abstract class Graph {
+    private Map<Vertex, List<Edge>> adjVertices;
+
+    public Graph() {
+        this.adjVertices = new HashMap<Vertex, List<Edge>>();
+    }
+
+    public Map<Vertex,List<Edge>> getAdjVertices() {
         return this.adjVertices;
     }
 
-    public void setAdjVertices(Map<Vertex,List<Vertex>> adjVertices) {
+    public void setAdjVertices(Map<Vertex,List<Edge>> adjVertices) {
         this.adjVertices = adjVertices;
     }
 
     public Vertex addVertex(String label) {
         Vertex v = new Vertex(label);
-        this.adjVertices.putIfAbsent(v, new ArrayList<>());
+        this.adjVertices.putIfAbsent(v, new ArrayList<Edge>());
         return v;
     }
 
     public void removeVertex(String label) {
         Vertex v = new Vertex(label);
-        this.adjVertices.values().stream().forEach(e -> e.remove(v));
-        this.adjVertices.remove(new Vertex(label));
+        
+        this.adjVertices
+            .values()
+            .stream()
+            .forEach( edgeList ->  edgeList.removeIf( edge -> edge.getVertex().getLabel().equals(label) ) );
+
+        this.adjVertices.remove(v);
     }
 
     public void addUniDirectionalEdge(String source, String destination) throws Exception {
+        this.addUniDirectionalEdge(source, destination, 0);
+    }
+
+    public void addUniDirectionalEdge(String source, String destination, int weight) throws Exception {
         Optional<Vertex> sourceV = this.findKey(source);
         Optional<Vertex> destinationV = this.findKey(destination);
 
@@ -76,23 +121,33 @@ abstract class Graph {
             throw new Exception("Source or Destination vertex does not exists");
         }
 
-        if(adjVertices.get(sourceV.get()).contains(destinationV.get())) {
+        Optional<Edge> edge =this.findEdgeForSourceToDestinationVertex(sourceV.get(), destinationV.get()); 
+        
+        if(edge.isPresent()) {
             throw new Exception("Destination vertex already exists");
         }
 
-        this.adjVertices.get(sourceV.get()).add(destinationV.get());
+        this.adjVertices.get(sourceV.get())
+            .add( new Edge(destinationV.get(), weight) );
     }
 
     public void addBiDirectionalEdge(String source, String destination) throws Exception {
-        this.addUniDirectionalEdge(source,destination);
+        this.addBiDirectionalEdge(source, destination, 0);
+    }
+
+    public void addBiDirectionalEdge(String source, String destination, int weight) throws Exception {
+        this.addUniDirectionalEdge(source, destination, weight);
 
         Optional<Vertex> sourceV = this.findKey(source);
         Optional<Vertex> destinationV = this.findKey(destination);
 
-        if( !adjVertices.get(destinationV.get()).contains(sourceV.get()) ) {
-            this.adjVertices.get(destinationV.get()).add(sourceV.get());
+        Optional<Edge> edge = this.findEdgeForSourceToDestinationVertex(destinationV.get(), sourceV.get()); 
+        
+        if( !edge.isPresent() ) {
+            this.adjVertices
+                .get(destinationV.get())
+                .add( new Edge(sourceV.get(), weight));
         }
-
     }
 
     public void removeEdge(String source, String destination) throws Exception {
@@ -103,12 +158,20 @@ abstract class Graph {
             throw new Exception("Source or Destination vertex does not exists");
         }
 
-        if( !adjVertices.get(sourceV.get()).contains(destinationV.get()) ) {
-            throw new Exception("Destination vertex does not exists");
+        Optional<Edge> edge =this.findEdgeForSourceToDestinationVertex(sourceV.get(), destinationV.get()); 
+        if( ! edge.isPresent() ) {
+            throw new Exception("Edge from Source vertex to Destination vertex does not exist");
         }
 
-        this.adjVertices.get(sourceV.get()).remove(destinationV.get());
+        this.adjVertices.get(sourceV.get()).remove(edge.get());
+    }
 
+    private Optional<Edge> findEdgeForSourceToDestinationVertex(Vertex sourceVertex, Vertex destinationVertex) {
+        return this.adjVertices
+                .get(sourceVertex)
+                .stream()
+                .filter( edge -> edge.getVertex().equals(destinationVertex) )
+                .findAny();
     }
 
     private Optional<Vertex> findKey(String label){
@@ -128,8 +191,8 @@ abstract class Graph {
         while( keyIt.hasNext() ){
             Vertex v = keyIt.next();
             System.out.printf( "-------- Vertex: %s --------\n", v.getLabel());
-            this.adjVertices.get(v).forEach( adjVertex -> {
-                System.out.printf( "Edge: %s -----> %s\n", v.getLabel(), adjVertex.getLabel() );
+            this.adjVertices.get(v).forEach( edge -> {
+                System.out.printf( "Edge: %s ---(%s)---> %s\n", v.getLabel(), edge.getWeight(), edge.getVertex().getLabel() );
             });
         }
 
@@ -139,6 +202,86 @@ abstract class Graph {
 
     public abstract void bfs(String label);
     public abstract void dfs(String label);
+    public abstract void dijkstra(String source, String destination);
+}
+
+class DjikstraTraverseItem implements Comparable<DjikstraTraverseItem> {
+    Vertex sourceVertex;
+    Vertex destinationVertex;
+    int totalWeight;
+
+
+    public DjikstraTraverseItem(Vertex sourceVertex, Vertex destinationVertex, int totalWeight) {
+        this.sourceVertex = sourceVertex;
+        this.destinationVertex = destinationVertex;
+        this.totalWeight = totalWeight;
+    }
+
+
+    public Vertex getSourceVertex() {
+        return this.sourceVertex;
+    }
+
+    public void setSourceVertex(Vertex sourceVertex) {
+        this.sourceVertex = sourceVertex;
+    }
+
+    public Vertex getDestinationVertex() {
+        return this.destinationVertex;
+    }
+
+    public void setDestinationVertex(Vertex destinationVertex) {
+        this.destinationVertex = destinationVertex;
+    }
+
+    public int getTotalWeight() {
+        return this.totalWeight;
+    }
+
+    public void setTotalWeight(int totalWeight) {
+        this.totalWeight = totalWeight;
+    }
+    
+    @Override
+    public int compareTo(DjikstraTraverseItem e) {
+        return e.totalWeight < this.totalWeight ? 1 : -1;
+    }
+
+    @Override
+    public String toString() {
+        return this.sourceVertex.getLabel() + "-- (" + this.totalWeight +  ")-->" + this.destinationVertex.getLabel();
+    }
+}
+
+class DjikstraShortestPathTableItem {
+    Vertex previousVertex;
+    int weight;
+
+    public DjikstraShortestPathTableItem(Vertex previousVertex, int weight) {
+        this.previousVertex = previousVertex;
+        this.weight = weight;
+    }
+
+    public Vertex getPreviousVertex() {
+        return this.previousVertex;
+    }
+
+    public void setPreviousVertex(Vertex previousVertex) {
+        this.previousVertex = previousVertex;
+    }
+
+    public int getWeight() {
+        return this.weight;
+    }
+
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
+
+    @Override
+    public String toString() {
+        return this.previousVertex.getLabel() + this.weight;
+    }
 }
 
 class GraphSearch extends Graph {
@@ -162,13 +305,13 @@ class GraphSearch extends Graph {
 
             Vertex currentV = traverseQ.poll();
 
-            List<Vertex> neighborsV = this.getAdjVertices().get(currentV);
+            List<Edge> neighborsV = this.getAdjVertices().get(currentV);
 
-            for(Vertex n : neighborsV) {
-                if( visitedMap.get(n) == null ) {
-                    visitedMap.put(n, true);
-                    System.out.println(n.getLabel());
-                    traverseQ.add(n);
+            for(Edge n : neighborsV) {
+                if( visitedMap.get(n.getVertex()) == null ) {
+                    visitedMap.put(n.getVertex(), true);
+                    System.out.println(n.getVertex().getLabel());
+                    traverseQ.add(n.getVertex());
                 }
             }
         }
@@ -186,20 +329,113 @@ class GraphSearch extends Graph {
         System.out.println("*******  DFS Search Start *******");
         while( !traverseQ.isEmpty() ) {
             Vertex currentV = traverseQ.pop();
-            List<Vertex> neighborsV = this.getAdjVertices().get(currentV);
+            List<Edge> neighborsV = this.getAdjVertices().get(currentV);
 
             if( visitedMap.get(currentV) == null ) {
                 visitedMap.put(currentV, true);
                 System.out.println(currentV.getLabel());
             }
 
-            for(Vertex neighbor : neighborsV) {
-                if( visitedMap.get(neighbor) == null ) {
-                    traverseQ.add(neighbor);
+            for(Edge neighborEdge : neighborsV) {
+                if( visitedMap.get(neighborEdge.getVertex()) == null ) {
+                    traverseQ.add(neighborEdge.getVertex());
                 }
             }
         }
         System.out.println("*******   DFS Search End  *******");
+    }
+
+    public void dijkstra(String source, String destination) {
+        Set<Vertex> visited = new HashSet<Vertex>();
+
+        PriorityQueue<DjikstraTraverseItem> traversePQ = new PriorityQueue<DjikstraTraverseItem>();
+
+        HashMap<Vertex, DjikstraShortestPathTableItem> djikstraShortestPathTable 
+            = new HashMap<Vertex, DjikstraShortestPathTableItem>();
+
+        Vertex sourceV = new Vertex(source);
+        Vertex destinationV = new Vertex(destination);
+
+        this.getAdjVertices().keySet().forEach(
+            vertex -> {
+                djikstraShortestPathTable.put( vertex,
+                    new DjikstraShortestPathTableItem(null, Integer.MAX_VALUE));
+            }
+        );
+
+        // Initialize calculated shortest path for source vertex 
+        visited.add(sourceV);
+        djikstraShortestPathTable.put(sourceV, new DjikstraShortestPathTableItem(null, 0));
+        this.getAdjVertices().get(sourceV).forEach(
+            edge -> {
+                traversePQ.add(new DjikstraTraverseItem(sourceV, edge.getVertex(), edge.getWeight()));
+            }
+        );
+
+        while( !traversePQ.isEmpty() ) {
+            DjikstraTraverseItem currentTraverseItem = traversePQ.poll();
+            
+            DjikstraShortestPathTableItem currentVShortestPath = djikstraShortestPathTable.get(currentTraverseItem.getDestinationVertex());
+
+            if ( visited.contains(currentTraverseItem.getDestinationVertex()) ){
+                continue;
+            }
+            
+            if( currentVShortestPath.getWeight() > currentTraverseItem.getTotalWeight() ) {
+                currentVShortestPath.setWeight(currentTraverseItem.getTotalWeight());
+                currentVShortestPath.setPreviousVertex(currentTraverseItem.getSourceVertex());
+            }
+            
+            this.getAdjVertices().get(currentTraverseItem.getDestinationVertex()).forEach(
+                edge -> {
+                    traversePQ.add(new DjikstraTraverseItem(currentTraverseItem.getDestinationVertex(), edge.getVertex(), edge.getWeight() + currentTraverseItem.getTotalWeight()));
+                }
+            );
+
+            visited.add(currentTraverseItem.getDestinationVertex());
+        }
+
+        System.out.println("*** Djikstra Computed SPT Table ***");
+        djikstraShortestPathTable.entrySet().forEach(
+            entry -> {
+                System.out.printf( "%s: weight %s , previous %s \n",
+                    entry.getKey().getLabel(),
+                    entry.getValue().getWeight(),
+                    (entry.getValue().getPreviousVertex() == null ? "null" : entry.getValue().getPreviousVertex().getLabel())
+                    );
+            }
+        );
+        
+        Stack<Vertex> pathStack = new Stack<Vertex>();
+        Vertex currentPathV = destinationV;
+        while(currentPathV != null) {
+            pathStack.push(currentPathV);
+            currentPathV = djikstraShortestPathTable.get(currentPathV).getPreviousVertex();
+        }
+
+        if( !pathStack.peek().equals(sourceV) ) {
+            System.out.printf("Source Vertex '%s' is not connected to Destination vertex '%s'\n", source, destination);
+            return;
+        }
+
+        StringBuilder pathBuilder = new StringBuilder();
+        Vertex pathV = null;
+
+        System.out.printf("Total cost from %s to %s is %s\n", source, destination, djikstraShortestPathTable.get(destinationV).getWeight());
+
+        while( !pathStack.isEmpty() ) {
+            Vertex prevPath = pathV;
+            pathV = pathStack.pop();
+            
+            if( prevPath != null ) {
+                pathBuilder.append(String.format("--(%s)-->", this.getAdjVertices().get(pathV).stream().filter( edge -> edge.getVertex().equals(prevPath) ).findFirst().get().getWeight() ));                
+            }
+
+            pathBuilder.append(pathV.getLabel());
+        }
+
+        System.out.println(pathBuilder.toString());
+
     }
 }
 
@@ -214,17 +450,19 @@ public class GraphExample {
         graph.addVertex("E");
         graph.addVertex("F");
         graph.addVertex("G");
+        graph.addVertex("H");
 
-        graph.addBiDirectionalEdge("A", "B");
-        graph.addBiDirectionalEdge("A", "C");
-        graph.addBiDirectionalEdge("A", "D");
-        graph.addBiDirectionalEdge("B", "C");
-        graph.addBiDirectionalEdge("C", "E");
-        graph.addBiDirectionalEdge("E", "G");
-        graph.addBiDirectionalEdge("B", "F");
+        graph.addBiDirectionalEdge("A", "B", 2);
+        graph.addBiDirectionalEdge("A", "C", 4);
+        graph.addBiDirectionalEdge("A", "D", 1);
+        graph.addBiDirectionalEdge("B", "C", 1);
+        graph.addBiDirectionalEdge("C", "E", 5);
+        graph.addBiDirectionalEdge("E", "G", 8);
+        graph.addBiDirectionalEdge("B", "F", 2);
+
 
         graph.print();
 
-        graph.dfs("A");
+        graph.dijkstra("A", "H");
     }
 }
