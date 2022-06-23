@@ -1,4 +1,6 @@
-class Solution { 
+// Problem https://leetcode.com/problems/n-th-tribonacci-number
+
+class Tribonacci { 
     
   int temp[] = new int[3];
   
